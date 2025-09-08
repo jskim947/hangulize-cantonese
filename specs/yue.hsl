@@ -21,9 +21,7 @@ config:
     author = "Your Name <email@example.com>"
     stage  = "draft"
 
- vars:
-
-    
+vars:
     # 성조 번호 (rewrite에서 제거용)
     "tones" = "1", "2", "3", "4", "5", "6"
    
