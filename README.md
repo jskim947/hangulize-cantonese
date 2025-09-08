@@ -9,21 +9,31 @@
 ## 주요 기능
 
 - **광둥어 LSHK 표기법 지원**: LSHK jyutping 입력을 한글로 변환
+- **한자→jyutping 변환**: Python 라이브러리(pycantonese)를 통한 번체 한자 자동 변환
 - **HSL 규칙 파일**: `specs/yue.hsl`에 광둥어 전사 규칙 정의
 - **jyutping 변환 패키지**: `translit/jyutping/`에 LSHK 변환 로직 구현
 - **포괄적인 테스트**: 다양한 광둥어 음운 환경에 대한 테스트 케이스 포함
 
 ## 설치 및 사용
 
-### Go 설치
+### 필수 요구사항
+- **Go 1.19 이상**
+- **Python 3.7 이상** (한자→jyutping 변환용)
+- **pycantonese 라이브러리**
+
+### Python 의존성 설치
 ```bash
-go version  # Go 1.19 이상 필요
+# pycantonese 설치 (한자→jyutping 변환용)
+pip install pycantonese
+
+# 또는 requirements.txt 사용
+pip install -r requirements.txt
 ```
 
-### 빌드 및 실행
+### Go 설치 및 빌드
 ```bash
 # 프로젝트 클론
-git clone https://github.com/yourusername/hangulize-cantonese.git
+git clone https://github.com/jskim947/hangulize-cantonese.git
 cd hangulize-cantonese
 
 # 빌드
@@ -117,7 +127,7 @@ hangulize-cantonese/
 ## 개발자
 
 - 프로젝트 기반: [hangulize](https://github.com/hangulize/hangulize)
-- 광둥어 지원 추가: [Your Name]
+- 광둥어 지원 추가: jskim
 
 ## 버전 히스토
 
