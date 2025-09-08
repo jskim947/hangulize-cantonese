@@ -1,0 +1,342 @@
+package hangulize
+
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"strings"
+	"unicode"
+	"unicode/utf8"
+
+	"github.com/pkg/errors"
+
+	"github.com/hangulize/hangulize/pkg/hre"
+	"github.com/hangulize/hangulize/pkg/hsl"
+)
+
+// Spec represents a transactiption specification for a language.
+type Spec struct {
+	// Meta information sections
+	Lang   Language
+	Config Config
+
+	// Helper setting sections
+	Macros    map[string]string
+	Vars      map[string][]string
+	Normalize map[string][]string
+
+	// Rewrite/Transcribe
+	Rewrite    []Rule
+	Transcribe []Rule
+
+	// Test examples
+	Test [][2]string
+
+	// Source code
+	Source string
+
+	// Prepared stuffs
+	script script
+	puncts map[rune]bool
+
+	// Custom normalization
+	normReplacer *strings.Replacer
+	normLetters  map[rune]bool
+}
+
+func (s Spec) String() string {
+	return s.Lang.ID
+}
+
+// GoString implements GoStringer for Spec.
+func (s Spec) GoString() string {
+	return fmt.Sprintf("hangulize.Spec{Lang.ID: %#v}", s.Lang.ID)
+}
+
+// ParseSpec parses a Spec from an HSL source.
+func ParseSpec(r io.Reader) (*Spec, error) {
+	var err error
+	var sourceBuf bytes.Buffer
+
+	// Use TeeReader to copy the source while parsing.
+	tee := io.TeeReader(r, &sourceBuf)
+
+	h, err := hsl.Parse(tee)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to parse HSL source")
+	}
+
+	source := sourceBuf.String()
+
+	// -------------------------------------------------------------------------
+	// Every sections are optional. An empty HSL source is also valid spec.
+
+	// lang
+	var lang Language
+
+	if sec, ok := h["lang"]; ok {
+		_lang, err := newLanguage(sec.(*hsl.DictSection))
+
+		if err != nil {
+			return nil, err
+		}
+
+		lang = *_lang
+	}
+
+	// config
+	var config Config
+
+	if sec, ok := h["config"]; ok {
+		_config, err := newConfig(sec.(*hsl.DictSection))
+
+		if err != nil {
+			return nil, err
+		}
+
+		config = *_config
+	}
+
+	// macros
+	var macros map[string]string
+
+	if sec, ok := h["macros"]; ok {
+		macros, err = sec.(*hsl.DictSection).Injective()
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// vars
+	var vars map[string][]string
+	if sec, ok := h["vars"]; ok {
+		vars = sec.(*hsl.DictSection).Map()
+	}
+
+	// normalize
+	var normalize map[string][]string
+	if sec, ok := h["normalize"]; ok {
+		normalize = sec.(*hsl.DictSection).Map()
+	}
+
+	// rewrite
+	var rewritePairs []hsl.Pair
+	if sec, ok := h["rewrite"]; ok {
+		rewritePairs = sec.(*hsl.ListSection).Pairs()
+	}
+
+	rewrite, err := newRules(rewritePairs, macros, vars)
+	if err != nil {
+		return nil, err
+	}
+
+	// transcribe
+	var transcribePairs []hsl.Pair
+	if sec, ok := h["transcribe"]; ok {
+		transcribePairs = sec.(*hsl.ListSection).Pairs()
+	}
+
+	transcribe, err := newRules(transcribePairs, macros, vars)
+	if err != nil {
+		return nil, err
+	}
+
+	// test
+	var test [][2]string
+	if sec, ok := h["test"]; ok {
+		for _, pair := range sec.(*hsl.ListSection).Pairs() {
+			word := pair.Left()
+			result := pair.Right()[0]
+
+			exm := [2]string{word, result}
+
+			test = append(test, exm)
+		}
+	}
+
+	// -------------------------------------------------------------------------
+
+	script, ok := getScript(lang.Script)
+	if !ok {
+		return nil, errors.Errorf("script not found: %s", lang.Script)
+	}
+	puncts := collectPuncts(rewrite, transcribe)
+
+	// custom normalization
+	var args []string
+	for to, froms := range normalize {
+		for _, from := range froms {
+			args = append(args, from, to)
+		}
+	}
+	normReplacer := strings.NewReplacer(args...)
+
+	// letters in normalize
+	normLetters := make(map[rune]bool, len(normalize))
+	for to := range normalize {
+		more := len(to)
+		for more > 0 {
+			let, size := utf8.DecodeRuneInString(to)
+			normLetters[let] = true
+			more -= size
+		}
+	}
+
+	// -------------------------------------------------------------------------
+
+	spec := Spec{
+		lang,
+		config,
+
+		macros,
+		vars,
+		normalize,
+
+		rewrite,
+		transcribe,
+
+		test,
+
+		source,
+
+		script,
+		puncts,
+
+		normReplacer,
+		normLetters,
+	}
+	return &spec, nil
+}
+
+// -----------------------------------------------------------------------------
+// "lang" section
+
+// Language identifies a natural language.
+type Language struct {
+	ID       string    // Arbitrary, but identifiable language ID.
+	Codes    [2]string // [0]: ISO 639-1 code, [1]: ISO 639-3 code
+	English  string    // The language name in English.
+	Korean   string    // The language name in Korean.
+	Script   string
+	Translit []string
+}
+
+func (l Language) String() string {
+	return fmt.Sprintf("%s(%s)", l.ID, l.English)
+}
+
+func newLanguage(dict *hsl.DictSection) (*Language, error) {
+	_codes := dict.All("codes")
+
+	if len(_codes) != 2 {
+		return nil, errors.New("codes must be 2; ISO 639-1 and 3")
+	}
+
+	var codes [2]string
+	codes[0] = _codes[0]
+	codes[1] = _codes[1]
+
+	lang := Language{
+		ID:       dict.One("id"),
+		Codes:    codes,
+		English:  dict.One("english"),
+		Korean:   dict.One("korean"),
+		Script:   dict.One("script"),
+		Translit: dict.All("translit"),
+	}
+	return &lang, nil
+}
+
+// -----------------------------------------------------------------------------
+// "config" section
+
+// Config keeps some configurations for a transactiption specification.
+type Config struct {
+	Authors []string
+	Stage   string
+}
+
+func newConfig(dict *hsl.DictSection) (*Config, error) {
+	config := Config{
+		Authors: dict.All("authors"),
+		Stage:   dict.One("stage"),
+	}
+	return &config, nil
+}
+
+// -----------------------------------------------------------------------------
+// "rewrite"/"transcribe" section
+
+func newRules(
+	pairs []hsl.Pair,
+
+	macros map[string]string,
+	vars map[string][]string,
+
+) ([]Rule, error) {
+
+	rules := make([]Rule, len(pairs))
+
+	for i, pair := range pairs {
+		from, err := hre.NewPattern(pair.Left(), macros, vars)
+		if err != nil {
+			return nil, err
+		}
+
+		negAWidth, negBWidth := from.NegativeLookaroundWidths()
+		if negAWidth == -1 || negBWidth == -1 {
+			return nil, errors.Errorf(
+				"%s contains unlimited negative lookaround", from)
+		}
+
+		right := pair.Right()
+		to := hre.NewRPattern(right[0], macros, vars)
+
+		rules[i] = Rule{i, from, to}
+	}
+
+	return rules, nil
+}
+
+// -----------------------------------------------------------------------------
+
+// collectPuncts collects punctuation characters from rewrite/transcribe rules.
+// It discards the punctuations that is used only for rewriting hints.
+func collectPuncts(rewrite []Rule, transcribe []Rule) map[rune]bool {
+	puncts := make(map[rune]bool)
+	rletters := make(map[rune]bool)
+
+	collectFrom := func(rule Rule) {
+		for _, let := range rule.From.Letters() {
+			// Collect only punctuation characters. (category P)
+			if !unicode.IsPunct(let) {
+				continue
+			}
+
+			// Punctuations appearing in the above RPatterns should be
+			// discarded. Bacause they are just hints for rewriting.
+			if rletters[let] {
+				continue
+			}
+
+			puncts[let] = true
+		}
+	}
+
+	for _, rule := range rewrite {
+		// Mark letters in RPatterns.
+		for _, let := range rule.To.Letters() {
+			rletters[let] = true
+		}
+
+		collectFrom(rule)
+	}
+
+	for _, rule := range transcribe {
+		collectFrom(rule)
+	}
+
+	return puncts
+}

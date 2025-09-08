@@ -1,0 +1,90 @@
+name: CI/CD
+
+on: push
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Setup Go
+      uses: actions/setup-go@v3
+      with: {go-version: 1.19.5}
+
+    - name: Lint
+      uses: golangci/golangci-lint-action@v3
+      with: {version: v1.50.1}
+
+    - name: Test
+      run: go test -coverprofile=profile.cov ./...
+
+    - name: Coveralls
+      uses: shogo82148/actions-goveralls@v1
+      with:
+        path-to-profile: profile.cov
+
+  test-wasm:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Setup Go
+      uses: actions/setup-go@v3
+      with: {go-version: 1.19.5}
+
+    - name: Setup Node
+      uses: actions/setup-node@v3
+      with: {node-version: 18.12.1}
+
+    - name: Test
+      env:
+        GOOS: js
+        GOARCH: wasm
+      run: |
+        for d in cmd/*.wasm; do
+          go test -exec $(go env GOROOT)/misc/wasm/go_js_wasm_exec "./$d/..."
+        done
+
+  build:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v3
+      with: {fetch-depth: 0} # fetch tags
+
+    - uses: actions/setup-go@v3
+      with: {go-version: 1.19.5}
+
+    - uses: actions/setup-node@v3
+      with: {node-version: 18.12.1}
+
+    - name: Setup Yarn
+      run: npm i -g yarn@1.22.19
+
+    - name: Build web
+      working-directory: web
+      run: make build && mv build ../_site
+
+    - uses: actions/upload-pages-artifact@v2
+
+  github-pages:
+    needs: [test, test-wasm, build]
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-22.04
+    steps:
+    - id: deployment
+      uses: actions/deploy-pages@v2

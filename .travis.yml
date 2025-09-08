@@ -1,0 +1,53 @@
+language: go
+
+go:
+- '1.9.x'
+- '1.10.x'
+- '1.11.x'
+- '1.12.x' # for Google App Engine Standard Environment and Heroku
+- '1.13.x'
+
+install:
+- go get -v -t ./...
+
+script:
+- go test ./...
+- go generate
+- git diff --exit-code
+
+after_success:
+- |
+  if [[ "$TRAVIS_GO_VERSION" = 1.11.x ]]; then
+    pip install --user codecov
+    go get github.com/axw/gocov/gocov
+    go get github.com/mattn/goveralls
+    go get golang.org/x/tools/cmd/cover
+    go test -covermode=count -coverprofile=coverage.txt ./...
+    goveralls -coverprofile=coverage.txt -service=travis-ci
+  fi
+
+env:
+  global:
+    secure: "bbg8fruYpJ33N2s133I6C0vFoZCMYQZoXN/7KVKVE/TEIFBdnK6OxgTid6ZQfZ5p546MpMoJZt8fEGtZ8AE54GHUv7c2mUlE/1esO94oNvogirpGDbs9Ejp7IDw58woZYvTeCQ/jpQrnf8TNnFg3FS/MBWchWiz2GXLqVK3cZosF8DKuo4X8Uj0CI6N0ubxc8Qp6/k3JBMFZCzCQJj/uiIYZmRrTUPaHLodIFqU4DjeFqNE3x1QIDomLv/z22zohfBqEvBfRV+eueN7Jgl8KW8prRI55srhbMkoCTDuuJoivkY7zb2zRyzQ9dgSOOdN99ETCRgqkPbSvv2vGJW3FT4f+cnKzSwl2B3uSco8ttTEXomOg+6PBTPL0gyrI/Ac5aAygEIs/Eh3eX/WLFB4hRzUdPN53Pgtvw8O7HVrTzjYm2Jq5I8VsmtF/aN+nAihUAd09ntSCKQkT6XsOJJBCCGOYuv/vdbYUypPbZWlUPyU453uDlnt4ZwQ1Jwp0O6svOEPWLH0mgRlSgrn48bCw1ZbVbBtgEG3eJ5YffCghxekakBjpjRU9PGQUWnjCRXTHB4DayYuJkDjOtTKPB4KBRg9+zJ0oWb94/D6/KPM8iNewKJ2OjrGUa7ghOSn4IrYVMgzOt67EXnfKN/bOLX3v1Wn92Lrbu1wqRVfDZDuvPJw="
+
+deploy:
+- provider: script
+  script: .ci/propagate -r hangulize.js -t "$TRAVIS_TAG"
+  skip_cleanup: true
+  on:
+    tags: true
+    go: '1.12.x'
+
+- provider: script
+  script: .ci/propagate -r api.hangulize.org -t "$TRAVIS_TAG"
+  skip_cleanup: true
+  on:
+    tags: true
+    go: '1.12.x'
+
+- provider: script
+  script: .ci/propagate -r phonemize.herokuapp.com -d -b 'master'
+  skip_cleanup: true
+  on:
+    tags: true
+    go: '1.12.x'

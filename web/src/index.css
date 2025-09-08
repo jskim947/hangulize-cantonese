@@ -1,0 +1,48 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
+
+#root {
+  transition: padding 0.25s;
+  padding: 3rem 1rem;
+}
+
+@media only screen and (max-width: 600px) {
+  #root {
+    padding: 2rem 0;
+  }
+}
+
+.version {
+  height: 1.25rem;
+  font-family: Roboto, sans-serif;
+}
+
+.word {
+  margin-bottom: 0.5rem;
+}
+
+.word input,
+.lang input {
+  line-height: 1 !important;
+}
+
+.examples {
+  font-size: 1rem;
+}
+
+.examples .label {
+  margin-bottom: 0.25rem;
+}
+
+.description {
+  margin-top: 1rem;
+}
+
+.footer {
+  font-family: Roboto, sans-serif;
+  font-size: 1rem;
+}
+
+.description a:hover,
+.copyright a:hover {
+  text-decoration: underline;
+}
