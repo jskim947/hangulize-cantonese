@@ -47,14 +47,32 @@ go build cmd/hangulize/main.go
 
 ### 테스트 실행
 ```bash
-# 단일 단어 테스트
-go run cmd/hangulize/main.go yue "nei5 hou2"
+# LSHK jyutping 직접 입력 테스트
+go run cmd/hangulize/main.go yue "nei5 hou2"        # 안녕하세요
+go run cmd/hangulize/main.go yue "hoeng1 gong2"     # 홍콩
+go run cmd/hangulize/main.go yue "ngo5"             # 나
 
-# 여러 단어 테스트
-go run cmd/hangulize/main.go yue "hoeng1 gong2"
-
-# Python 테스트 스크립트
+# Python을 통한 한자→jyutping→한글 변환 테스트
 python test_jyutping.py
+
+# 또는 직접 Python에서 사용
+python -c "
+import pycantonese
+import subprocess
+import sys
+
+# 한자를 jyutping으로 변환
+text = '香港你好'
+jyutping = pycantonese.characters_to_jyutping(text)
+print(f'한자: {text}')
+
+# jyutping을 한글로 변환
+for word, jp in jyutping:
+    result = subprocess.run(['go', 'run', 'cmd/hangulize/main.go', 'yue', jp], 
+                          capture_output=True, text=True)
+    hangul = result.stdout.strip()
+    print(f'{word} ({jp}) → {hangul}')
+"
 ```
 
 ## 지원하는 광둥어 음운
@@ -76,13 +94,15 @@ python test_jyutping.py
 
 ## 예시
 
-| LSHK jyutping | 한글 표기 | 의미 |
-|---------------|-----------|------|
-| nei5 hou2 | 네이호우 | 안녕하세요 |
-| hoeng1 gong2 | 헝공 | 홍콩 |
-| ngo5 | 응오 | 나 |
-| m4 goi1 | 므고이 | 죄송합니다 |
-| gwong2 dung1 waa2 | 궝둥와 | 광둥어 |
+| 한자 | LSHK jyutping | 한글 표기 | 의미 |
+|------|---------------|-----------|------|
+| 你好 | nei5 hou2 | 네이호우 | 안녕하세요 |
+| 香港 | hoeng1 gong2 | 헝공 | 홍콩 |
+| 我 | ngo5 | 응오 | 나 |
+| 唔該 | m4 goi1 | 므고이 | 죄송합니다 |
+| 廣東話 | gwong2 dung1 waa2 | 궝둥와 | 광둥어 |
+| 多謝 | do1 ze6 | 도제 | 감사합니다 |
+| 再見 | zoi3 gin3 | 조이긴 | 안녕히 가세요 |
 
 ## 프로젝트 구조
 
