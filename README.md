@@ -20,6 +20,7 @@
 - **Go 1.19 이상**
 - **Python 3.7 이상** (한자→jyutping 변환용)
 - **pycantonese 라이브러리**
+- **Docker** (선택사항 - CLI 도구용)
 
 ### Python 의존성 설치
 ```bash
@@ -30,7 +31,26 @@ pip install pycantonese
 pip install -r requirements.txt
 ```
 
-### Go 설치 및 빌드
+### Docker를 사용한 CLI 도구 실행 (권장)
+```bash
+# 프로젝트 클론
+git clone https://github.com/jskim947/hangulize-cantonese.git
+cd hangulize-cantonese
+
+# Docker 이미지 빌드
+docker build -f Dockerfile.cli -t hangulize-cantonese .
+
+# CLI 도구 실행
+docker run --rm hangulize-cantonese hangulize yue "nei5 hou2"        # 안녕하세요
+docker run --rm hangulize-cantonese hangulize yue "hoeng1 gong2"     # 홍콩
+docker run --rm hangulize-cantonese hangulize yue "ngo5"             # 나
+
+# 대화형 모드로 실행
+docker run -it --rm hangulize-cantonese sh
+# 컨테이너 내에서: hangulize yue "nei5 hou2"
+```
+
+### Go 직접 설치 및 빌드
 ```bash
 # 프로젝트 클론
 git clone https://github.com/jskim947/hangulize-cantonese.git
@@ -115,6 +135,7 @@ hangulize-cantonese/
 │       └── jyutping.go      # LSHK 변환 패키지
 ├── cmd/hangulize/
 │   └── main.go              # CLI 도구
+├── Dockerfile.cli           # CLI용 Docker 이미지
 ├── test_jyutping.py         # Python 테스트 스크립트
 └── README.md               # 이 파일
 ```
