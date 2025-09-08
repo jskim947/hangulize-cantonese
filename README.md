@@ -1,98 +1,127 @@
-<a href="https://hangulize.org/">
-  <img src="web/public/logo.svg" height="64" align="right" />
-</a>
+# Hangulize Cantonese
 
-# 한글라이즈
+한글라이즈 라이브러리에 광둥어(번체 중국어) 지원을 추가한 프로젝트입니다.
 
-[![GoDoc](https://godoc.org/github.com/hangulize/hangulize?status.svg)](https://godoc.org/github.com/hangulize/hangulize)
-[![Go Report Card](https://goreportcard.com/badge/github.com/hangulize/hangulize)](https://goreportcard.com/report/github.com/hangulize/hangulize)
-[![Build Status](https://travis-ci.org/hangulize/hangulize.svg?branch=develop)](https://travis-ci.org/hangulize/hangulize)
-[![Coverage Status](https://coveralls.io/repos/github/hangulize/hangulize/badge.svg?branch=develop)](https://coveralls.io/github/hangulize/hangulize)
+## 개요
 
-(WIP: 아직 개발 중, API가 임의로 바뀔 수 있어요!)
+이 프로젝트는 [hangulize](https://github.com/hangulize/hangulize) 라이브러리를 기반으로 하여, 광둥어를 LSHK(jyutping) 표기법으로 변환한 후 한글로 표기하는 기능을 제공합니다.
 
-> 외국어의 한글 표기 체계가 제대로 서려면 일반인이 외국어를 한글로 표기하고
-> 싶을 때 바로바로 쉽게 용례를 찾을 수 있어야 한다. 정기적으로 회의를 열어
-> 용례를 정하는 것으로는 한계가 있다. 외래어 표기 심의 방식이 자동화되어 한글로
-> 표기하고 싶은 외국어를 입력하자마자 한글 표기가 나와야 한다. 이미 용례가
-> 정해진 것은 그것을 따르고 용례에 없는 것이라도 각 언어의 표기 규칙에 따라
-> 권장 표기를 표시해야 한다. 프로그래머들과 언어학자들이 손잡고 연구한다면 이게
-> 공상으로만 그치지 않을 것이다.
->
-> Brian Jongseong Park (http://iceager.egloos.com/2610028)
+## 주요 기능
 
-한글라이즈는 외래어를 한글로 변환하는 도구입니다.
+- **광둥어 LSHK 표기법 지원**: LSHK jyutping 입력을 한글로 변환
+- **HSL 규칙 파일**: `specs/yue.hsl`에 광둥어 전사 규칙 정의
+- **jyutping 변환 패키지**: `translit/jyutping/`에 LSHK 변환 로직 구현
+- **포괄적인 테스트**: 다양한 광둥어 음운 환경에 대한 테스트 케이스 포함
 
-```console
-$ go get -u github.com/hangulize/hangulize
+## 설치 및 사용
+
+### Go 설치
+```bash
+go version  # Go 1.19 이상 필요
 ```
 
-```go
-import "github.com/hangulize/hangulize"
+### 빌드 및 실행
+```bash
+# 프로젝트 클론
+git clone https://github.com/yourusername/hangulize-cantonese.git
+cd hangulize-cantonese
 
-hangulize.Hangulize("ita", "Cappuccino")
-// output: "카푸치노"
+# 빌드
+go build cmd/hangulize/main.go
+
+# 실행
+./main yue "nei5 hou2"        # 안녕하세요
+./main yue "hoeng1 gong2"     # 홍콩
+./main yue "ngo5"             # 나
 ```
 
-## 지원하는 언어
+### 테스트 실행
+```bash
+# 단일 단어 테스트
+go run cmd/hangulize/main.go yue "nei5 hou2"
 
-```
-LANG     STAGE    ENG                      KOR
-aze      draft    Azerbaijani              아제르바이잔어
-bel      draft    Belarusian               벨라루스어
-bul      draft    Bulgarian                불가리아어
-cat      draft    Catalan                  카탈로니아어
-ces      draft    Czech                    체코어
-chi      draft    Chinese                  중국어
-cym      draft    Welsh                    웨일스어
-deu      draft    German                   독일어
-ell      draft    Greek                    그리스어
-epo      draft    Esperanto                에스페란토어
-est      draft    Estonian                 에스토니아어
-fin      draft    Finnish                  핀란드어
-grc      draft    Ancient Greek            고대 그리스어
-hbs      draft    Serbo-Croatian           세르보크로아트어
-hun      draft    Hungarian                헝가리어
-isl      draft    Icelandic                아이슬란드어
-ita      draft    Italian                  이탈리아어
-jpn      draft    Japanese                 일본어
-jpn-ck   draft    Japanese (C.K.)          일본어(최영애-김용옥)
-kat-1    draft    Georgian (1st scheme)    조지아어(제1안)
-kat-2    draft    Georgian (2nd scheme)    조지아어(제2안)
-lat      draft    Latin                    라틴어
-lav      draft    Latvian                  라트비아어
-lit      draft    Lithuanian               리투아니아어
-mkd      draft    Macedonian               마케도니아어
-nld      draft    Dutch                    네덜란드어
-pol      draft    Polish                   폴란드어
-por      draft    Portuguese               포르투갈어
-por-br   draft    Brazilian Portuguese     브라질 포르투갈어
-ron      draft    Romanian                 루마니아어
-rus      draft    Russian                  러시아어
-slk      draft    Slovak                   슬로바키아어
-slv      draft    Slovenian                슬로베니아어
-spa      draft    Spanish                  스페인어
-sqi      draft    Albanian                 알바니아어
-swe      draft    Swedish                  스웨덴어
-tur      draft    Turkish                  터키어
-ukr      draft    Ukrainian                우크라이나어
-vie      draft    Vietnamese               베트남어
-wlm      draft    Middle Welsh             웨일스어(중세)
+# 여러 단어 테스트
+go run cmd/hangulize/main.go yue "hoeng1 gong2"
+
+# Python 테스트 스크립트
+python test_jyutping.py
 ```
 
-## 읽을거리
+## 지원하는 광둥어 음운
 
-- [한글라이즈 재제작기][remake-of-hangulize](이흥섭, 고랭코리아 2018년 8월 밋업)
+### 자음
+- **기본 자음**: b, p, m, f, d, t, n, l, g, k, h, z, c, s, w
+- **복합 자음**: gw, kw, ng
+- **j 초성**: j + 모음 결합
 
-[remake-of-hangulize]: https://subl.ee/~gokr1808
+### 모음
+- **단일 모음**: a, e, i, o, u, aa, oe, yu
+- **이중모음**: ai, au, ei, ou, ui, iu, aai, aau, eoi
+- **삼중모음**: aai, aau, eoi
+- **w 포함 모음**: wa, wai, wan, wong, wing 등
+- **y 운모**: yu, yun, yut
 
-## 만든이
+### 성조
+- **성조 1-6**: LSHK 표기법의 성조 번호는 한글 표기에 영향을 주지 않음
 
-- 이흥섭, Heungsub Lee <<heungsub@subl.ee>>
-- 박종성, Brian Jongseong Park <<iceager@gmail.com>>
+## 예시
+
+| LSHK jyutping | 한글 표기 | 의미 |
+|---------------|-----------|------|
+| nei5 hou2 | 네이호우 | 안녕하세요 |
+| hoeng1 gong2 | 헝공 | 홍콩 |
+| ngo5 | 응오 | 나 |
+| m4 goi1 | 므고이 | 죄송합니다 |
+| gwong2 dung1 waa2 | 궝둥와 | 광둥어 |
+
+## 프로젝트 구조
+
+```
+hangulize-cantonese/
+├── specs/
+│   └── yue.hsl              # 광둥어 HSL 규칙 파일
+├── translit/
+│   └── jyutping/
+│       └── jyutping.go      # LSHK 변환 패키지
+├── cmd/hangulize/
+│   └── main.go              # CLI 도구
+├── test_jyutping.py         # Python 테스트 스크립트
+└── README.md               # 이 파일
+```
+
+## HSL 규칙 파일
+
+`specs/yue.hsl` 파일에는 광둥어를 한글로 변환하는 모든 규칙이 정의되어 있습니다:
+
+- **rewrite**: 성조 번호 제거 등 전처리 규칙
+- **transcribe**: LSHK jyutping을 한글 자모로 변환하는 규칙
+- **test**: 다양한 테스트 케이스
+
+## 기여하기
+
+1. 이 저장소를 포크합니다
+2. 새로운 기능 브랜치를 생성합니다 (`git checkout -b feature/amazing-feature`)
+3. 변경사항을 커밋합니다 (`git commit -m 'Add amazing feature'`)
+4. 브랜치에 푸시합니다 (`git push origin feature/amazing-feature`)
+5. Pull Request를 생성합니다
 
 ## 라이선스
 
-한글라이즈는 MIT 라이선스 하에 공개되어 있습니다. 소스코드를 사용할 경우
-라이선스 내용을 준수해주세요. 라이선스 전문은 `LICENSE` 파일에서 확인하실 수
-있습니다.
+이 프로젝트는 원본 hangulize 프로젝트와 동일한 라이선스를 따릅니다.
+
+## 원본 프로젝트
+
+- [hangulize](https://github.com/hangulize/hangulize) - 원본 한글라이즈 라이브러리
+- [LSHK](https://www.lshk.org/jyutping) - 광둥어 로마자 표기법
+
+## 개발자
+
+- 프로젝트 기반: [hangulize](https://github.com/hangulize/hangulize)
+- 광둥어 지원 추가: [Your Name]
+
+## 버전 히스토
+
+- **v1.0.0** - 초기 릴리스
+  - 광둥어 LSHK jyutping 지원
+  - 기본 자음/모음 변환 규칙
+  - 포괄적인 테스트 케이스
